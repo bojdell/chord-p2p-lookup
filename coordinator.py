@@ -6,7 +6,6 @@ class Coordinator():
 
 	def __init__(self):
 		nodes = {}
-		port = 5555
 
 	def start(self):
 		coordThread = threading.Thread(target=self._coordinate)
