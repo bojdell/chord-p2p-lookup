@@ -23,7 +23,7 @@ class Coordinator():
 					print "Node " + nodeID + " already exists!"
 					break
 				nodeID = int(command_args[1])
-				self.join(nodeID)
+				nodes[0].join(nodeID)
 
 			elif command_args[0] == "find":
 				nodeID = int(command_args[1])
@@ -32,7 +32,7 @@ class Coordinator():
 
 			elif command_args[0] == "leave":
 				nodeID = int(command_args[1])
-				nodes[nodeID].find(key)
+				nodes[nodeID].leave()
 
 			elif command_args[0] == "show":
 				nodeID = int(command_args[1])
