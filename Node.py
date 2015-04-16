@@ -56,7 +56,8 @@ class Node():
                 self.__process_message(pickle.loads(received))
 
     def __process_message(self, message):
-    	pass
+    	fn = getattr(self, message.function)	# get fn pointer
+    	fn(message.args)						# call fn
 
 
 class Message():
@@ -64,6 +65,6 @@ class Message():
     Class that is used to communicate between nodes in the Chord network
     """
 
-    def __init__(self, command):
-    	self.command = str(command).lower() if command else None
-    	
+    def __init__(self, function, args):
+    	self.function = str(function).lower() if function else None
+    	self.args = args if args else None
