@@ -5,6 +5,8 @@ import sys
 import threading
 import pickle
 
+m = 8
+
 class Node():
 	"""
 	Chord Node Class: contains functionality for a node in a Chord P2P network
@@ -22,24 +24,38 @@ class Node():
 		print "Node " + str(nodeID) + " started"
 
 	def join(self, otherNodeID):
-		pass
+		if otherNodeID:
+			init_finger_table(otherNodeID)
+			update_others(otherNodeID)
+			# move keys in (predecessor, n] from successor
+		else:
+			# init all fingers to self
+			for i in range(1, 8):
+				self.finger_table.append(self.nodeID) 
 
 	def init_finger_table(self, otherNodeID):
+		# self.finger_table[0] = self.find_successor(otherNodeID)
+		# self.predecessor = successor.predecessor
+		# successor.predecessor = self.nodeID
+		# for i in range()
+		pass
+
+	def find_successor(self, args):
 		pass
 
 	def update_others(self, otherNodeID):
 		pass
 
-	def update_finger_table(self, otherNodeID, index):
+	def update_finger_table2(self, otherNodeID, index):
 		pass
 
-	def update_finger_table_MSG(self, args):
+	def update_finger_table(self, args):
 		pass
 
-	def update_predecessor_MSG(self, args):
+	def update_predecessor(self, args):
 		pass
 
-	def transfer_keys_MSG(self, args):
+	def transfer_keys(self, args):
 		pass
 
 	# for testing purposes only
