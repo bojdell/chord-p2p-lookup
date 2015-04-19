@@ -63,7 +63,6 @@ class Node():
 		msg = Message("find_successor", [start], self.nodeID, None)
 		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+otherNodeID)
 		successor = self.__listen_for_response()
-		print "the successor of node " + str(start) + " is " + str(successor)
 		# get predecessor from successor
 		msg = Message("get_predecessor", None, self.nodeID, None)
 		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
@@ -95,7 +94,6 @@ class Node():
 			msg = Message("find_predecessor", [n], self.nodeID, None)
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT)
 			p = self.__listen_for_response()
-			print "predecessor of " + str(n) + " is " + str(p)
 			msg = Message("update_finger_table", [self.nodeID,i], self.nodeID, None)
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 			self.__listen_for_response()
@@ -144,11 +142,9 @@ class Node():
 		else:
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+n)
 			successor = self.__listen_for_response()
-			print "successor is " + str(successor)
 			return successor
 
 	def find_predecessor(self, nodeID):
-		print "find predecessor of node " + str(nodeID) + " at node " + str(self.nodeID)
 		n = self.nodeID
 		n_successor = self.finger_table[1]
 
@@ -175,14 +171,12 @@ class Node():
 				msg = Message("get_successor", None, self.nodeID, None)
 				self.__send_message(msg, DEFAULT_HOST, BASE_PORT+n)
 				n_successor = self.__listen_for_response()
-		print "predecessor of " + str(nodeID) + " is " + str(n)
 		return n
 
 	def closest_preceding_finger(self, nodeID):
 		i = 8
 		while i > 0:
 			if self.finger_table[i] in range(self.nodeID+1, nodeID):
-				print "returning " + str(self.finger_table[i])
 				return self.finger_table[i]
 			i = i-1
 		return self.nodeID
