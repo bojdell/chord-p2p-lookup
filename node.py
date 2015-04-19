@@ -276,7 +276,7 @@ class Coordinator():
 		first_node = Node(0, DEFAULT_HOST, BASE_PORT)
 		for i in range(1,9):
 			first_node.finger_table[i] = 0
-		first_node.keys = (0,255)
+		first_node.keys = set(range(0, 256))
 		self.nodes[0] = first_node
 		# start the coordinator thread
 		coordThread = threading.Thread(target=self.__coordinate)
