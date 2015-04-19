@@ -55,7 +55,7 @@ class Node():
 			self.__send_message(msg, 'localhost', 5000+self.predecessor)
 
 	def init_finger_table(self, otherNodeID):
-		start =  otherNodeID + 1
+		start =  self.nodeID + 1
 		# find node's successor
 		msg = Message("find_successor", [start], self.nodeID, None)
 		self.__send_message(msg, 'localhost', 5000)
@@ -83,7 +83,9 @@ class Node():
 
 	def update_others(self):
 		for i in range (1,9):
-			p = self.find_predecessor(self.nodeID - pow(2,i-1))
+			n = self.nodeID - pow(2,i-1) % 256
+			print "find_predecessor of " + str(n)
+			p = self.find_predecessor(n)
 			msg = Message("update_finger_table", [self.nodeID,i], self.nodeID, None)
 			self.__send_message(msg, 'localhost', 5000+p)
 			self.__listen_for_response()
@@ -97,7 +99,6 @@ class Node():
 			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
 			self.__send_message(msg, 'localhost', 5000+p)
 			self.__listen_for_response()
-
 
 	def update_finger_table_MSG(self, args):
 		pass
@@ -134,18 +135,22 @@ class Node():
 		n_successor = self.finger_table[1]
 		if n == n_successor:
 			return n
-		while nodeID not in range(n, n_successor): #TODO: how do we find n's successor???
+		while nodeID not in range(n, n_successor+1): #TODO: how do we find n's successor???
+			if nodeID >= n and n_successor == 0:
+				return n
 			msg = Message("closest_preceding_finger", [nodeID], self.nodeID, None)
 			self.__send_message(msg,'localhost', 5000+n)
 			n = self.__listen_for_response()
 			msg = Message("get_successor", None, self.nodeID, None)
-			n_successor = self.__send_message(msg, 'localhost', 5000+n)
+			self.__send_message(msg, 'localhost', 5000+n)
+			n_successor = self.__listen_for_response()
 		return n
 
 	def closest_preceding_finger(self, nodeID):
 		i = 8
 		while i > 0:
-			if self.finger_table[i] in range(nodeID[0],self.nodeID):
+			print "if " + str(self.finger_table[i]) + " in [" + str(self.nodeID+1) + "," + str(nodeID[0]-1) + "]"
+			if self.finger_table[i] in range(self.nodeID+1, nodeID[0]):
 				return self.finger_table[i]
 			i = i-1
 		return self.nodeID
@@ -211,6 +216,7 @@ class Node():
 		else:
 			return_val = fn()
 		message.return_val = return_val
+		print "returning " + str(message.return_val)
 		self.__send_message(message, 'localhost', message.src_nodeID)
 
 
