@@ -22,7 +22,7 @@ class Node():
 		self.port = port
 		self.finger_table = {}	# contains finger pointers for this node
 		self.predecessor = 0
-		self.keys = ()
+		self.keys = {}
 
 		self.__start()			# open listener socket
 		print "Node " + str(nodeID) + " started"
@@ -39,14 +39,10 @@ class Node():
 		self.keys = (successor + 1, self.nodeID)
 
 	def remove_keys(self, start, end):
-		my_start = end
-		my_end = self.keys[1]
-		if my_start > my_end:			# adjust for wraparound
-			my_end += 256
-		self.keys = (my_start, my_end)
+		self.keys = self.keys.difference(range(start, end + 1))
 
 	def add_keys(self, start, end):
-		pass
+		self.keys = self.keys.union(range(start, end + 1))
 
 	def find(self, key):
 		return self.find_successor(key)
@@ -64,10 +60,8 @@ class Node():
 
 	def print_keys(self):
 		if self.keys:
-			min_key = self.keys[0]
-			max_key = self.keys[1]
-			for i in range(min_key, max_key+1):
-				print i
+			for key in self.keys:
+				print key
 		else:
 			print "No keys currently stored at node " + str(self.nodeID)
 
