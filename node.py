@@ -7,8 +7,6 @@ import pickle
 import math
 import time
 
-m = 8
-
 class Node():
 	"""
 	Chord Node Class: contains functionality for a node in a Chord P2P network
@@ -25,27 +23,6 @@ class Node():
 		self.__start()			# open listener socket
 		print "Node " + str(nodeID) + " started"
 
-<<<<<<< HEAD
-	def join(self, otherNodeID):
-		if otherNodeID:
-			init_finger_table(otherNodeID)
-			update_others(otherNodeID)
-			# move keys in (predecessor, n] from successor
-		else:
-			# init all fingers to self
-			for i in range(1, 8):
-				self.finger_table.append(self.nodeID) 
-
-	def init_finger_table(self, otherNodeID):
-		# self.finger_table[0] = self.find_successor(otherNodeID)
-		# self.predecessor = successor.predecessor
-		# successor.predecessor = self.nodeID
-		# for i in range()
-		pass
-
-	def find_successor(self, args):
-		pass
-=======
 	def join(self):
 		self.init_finger_table(0)
 		self.update_others()
@@ -65,7 +42,6 @@ class Node():
 			self.__send_message(msg, 'localhost', 5000+p)
 
 	def print_keys(self):
-		print "called print keys"
 		min_key = self.keys[0]
 		max_key = self.keys[1]
 		for i in range(min_key, max_key+1):
@@ -78,11 +54,12 @@ class Node():
 			self.__send_message(msg, 'localhost', 5000+self.predecessor)
 
 	def init_finger_table(self, otherNodeID):
-		start =  otherNodeID + 1
+		start =  self.nodeID + 1
 		# find node's successor
 		msg = Message("find_successor", [start], self.nodeID, None)
 		self.__send_message(msg, 'localhost', 5000)
 		successor = self.__listen_for_response()
+		print "the successor of node " + str(start) + " is " + str(successor)
 		# get predecessor from successor
 		msg = Message("get_predecessor", None, self.nodeID, None)
 		self.__send_message(msg, 'localhost', 5000+successor)
@@ -95,7 +72,7 @@ class Node():
 		# start filling in finger table
 		self.finger_table[1] = successor
 		for i in range(1,8):
-			start = pow(2,i) % 256
+			start = (self.nodeID + pow(2,i)) % 256
 			if start in range(self.nodeID, self.finger_table[i]):
 				self.finger_table[i+1] = self.finger_table[i]
 			else:
@@ -103,38 +80,47 @@ class Node():
 				self.__send_message(msg, 'localhost', 5000)
 				successor = self.__listen_for_response()
 				self.finger_table[i+1] = successor
->>>>>>> fb6f77a10383c65e94f691c8c17f5d291c4c7642
+		for i in range(1,9):
+			start = (self.nodeID + pow(2,i-1)) % 256
+			print "start=" + str(start) + " successor=" + str(self.finger_table[i])
 
 	def update_others(self):
 		for i in range (1,9):
-			p = self.find_predecessor(self.nodeID - pow(2,i-1))
+			n = (self.nodeID - pow(2,i-1)) % 256
+			#p = self.find_predecessor(n)
+			msg = Message("find_predecessor", [n], self.nodeID, None)
+			self.__send_message(msg, 'localhost', 5000)
+			p = self.__listen_for_response()
+			print "predecessor of " + str(n) + " is " + str(p)
 			msg = Message("update_finger_table", [self.nodeID,i], self.nodeID, None)
 			self.__send_message(msg, 'localhost', 5000+p)
 			self.__listen_for_response()
 
-<<<<<<< HEAD
-	def update_finger_table2(self, otherNodeID, index):
-		pass
-=======
 	def update_finger_table(self, otherNodeID, index):
 		if otherNodeID == self.nodeID:
 			return
 		if otherNodeID in range(self.nodeID, self.finger_table[index]):
+			print "updating node " + str(self.nodeID) + " at entry i=" + str(index)
 			self.finger_table[index] = otherNodeID
 			p = self.predecessor
 			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
 			self.__send_message(msg, 'localhost', 5000+p)
 			self.__listen_for_response()
+		elif (otherNodeID >= self.nodeID) and (self.finger_table[index] == 0):
+			print "updating node " + str(self.nodeID) + " at entry i=" + str(index)
+			self.finger_table[index] = otherNodeID
+			p = self.predecessor
+			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
+ 			self.__send_message(msg, 'localhost', 5000+p)
+			self.__listen_for_response()
 
->>>>>>> fb6f77a10383c65e94f691c8c17f5d291c4c7642
-
-	def update_finger_table(self, args):
+	def update_finger_table_MSG(self, args):
 		pass
 
-	def update_predecessor(self, args):
+	def update_predecessor_MSG(self, args):
 		pass
 
-	def transfer_keys(self, args):
+	def transfer_keys_MSG(self, args):
 		pass
 
 	def get_successor(self):
@@ -148,7 +134,6 @@ class Node():
 
 	def find_successor(self, nodeID):
 		n = self.find_predecessor(nodeID)
-		print "predecessor is " + str(n)
 		msg = Message("get_successor", None, self.nodeID, None)
 		if n == self.nodeID:
 			return self.finger_table[1]
@@ -159,22 +144,31 @@ class Node():
 			return successor
 
 	def find_predecessor(self, nodeID):
+		print "find predecessor of node " + str(nodeID) + " at node " + str(self.nodeID)
 		n = self.nodeID
 		n_successor = self.finger_table[1]
 		if n == n_successor:
 			return n
-		while nodeID not in range(n, n_successor): #TODO: how do we find n's successor???
-			msg = Message("closest_preceding_finger", [nodeID], self.nodeID, None)
-			self.__send_message(msg,'localhost', 5000+n)
-			n = self.__listen_for_response()
-			msg = Message("get_successor", None, self.nodeID, None)
-			n_successor = self.__send_message(msg, 'localhost', 5000+n)
+		while nodeID not in range(n+1, n_successor+1): #TODO: how do we find n's successor???
+			if (nodeID > n) and (n_successor == 0):
+				return n
+			if n == self.nodeID:
+				n = self.predecessor
+				n_successor = self.nodeID
+			else:
+				msg = Message("closest_preceding_finger", [nodeID], self.nodeID, None)
+				self.__send_message(msg,'localhost', 5000+n)
+				n = self.__listen_for_response()
+				msg = Message("get_successor", None, self.nodeID, None)
+				self.__send_message(msg, 'localhost', 5000+n)
+				n_successor = self.__listen_for_response()
 		return n
 
 	def closest_preceding_finger(self, nodeID):
 		i = 8
 		while i > 0:
-			if self.finger_table[i] in range(nodeID[0],self.nodeID):
+			print "closest_preceding_finger: " + str(self.finger_table[i])
+			if self.finger_table[i] in range(self.nodeID+1, nodeID):
 				return self.finger_table[i]
 			i = i-1
 		return self.nodeID
@@ -215,7 +209,6 @@ class Node():
 			if received:
 				time.sleep(0.1)
 				message = pickle.loads(received)
-				print "Node " + str(self.nodeID) + " received a message: " + message.function
 				self.__process_message(message)
 
 	# listen for incoming responses before moving on
@@ -224,7 +217,7 @@ class Node():
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		sock.settimeout(None)
-		sock.bind((self.host, self.nodeID))
+		sock.bind((self.host, 6000+self.nodeID))
 
 		while 1:
 			response = sock.recv(1024)
@@ -236,11 +229,15 @@ class Node():
 	def __process_message(self, message):
 		fn = getattr(self, message.function)	# get fn pointer
 		if message.args:
-			return_val = fn(message.args)		# call fn
+			if len(message.args) == 1:
+				return_val = fn(message.args[0])
+			elif len(message.args) == 2:
+				return_val = fn(message.args[0],message.args[1])
 		else:
 			return_val = fn()
 		message.return_val = return_val
-		self.__send_message(message, 'localhost', message.src_nodeID)
+		#print "returning " + str(message.return_val)
+		self.__send_message(message, 'localhost', 6000+message.src_nodeID)
 
 
 class Message():
@@ -285,7 +282,7 @@ class Coordinator():
 					break
 				new_node = Node(nodeID,'localhost',5000+nodeID)
 				new_node.join()
-				nodes[nodeID] = new_node
+				self.nodes[nodeID] = new_node
 
 			elif command_args[0] == "find":
 				nodeID = int(command_args[1])
@@ -305,10 +302,16 @@ class Coordinator():
 					print nodeID
 					self.nodes[nodeID].print_keys()
 
+			elif command_args[0] == "finger":
+				nodeID = int(command_args[1])
+				node = self.nodes[nodeID]
+				for i in range(1,9):
+					start = (node.nodeID + pow(2,i-1)) % 256
+					print "start=" + str(start) + " successor=" + str(node.finger_table[i])
+ 
 if __name__ == "__main__":
 	coord = Coordinator()
 	# add node zero before starting the thread
 	coord.start()
 	while 1:
 		pass
-
