@@ -7,6 +7,10 @@ import pickle
 import math
 import time
 
+m = 8
+BASE_PORT = 5000
+DEFAULT_HOST = "localhost"
+
 class Node():
 	"""
 	Chord Node Class: contains functionality for a node in a Chord P2P network
@@ -24,7 +28,7 @@ class Node():
 		print "Node " + str(nodeID) + " started"
 
 	def join(self):
-		self.init_finger_table(0)
+		self.init_finger_table(0)	# TODO: node 0 may not always be in network
 		self.update_others()
 
 	def find(self, key):
@@ -33,13 +37,13 @@ class Node():
 	def leave(self):
 		successor = self.finger_table[1]
 		msg = Message("set_predecessor", [self.predecessor], self.nodeID, None)
-		self.__send_message(msg, 'localhost', 5000+successor)
+		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
 		self.__listen_for_response()
 		for i in range(1,9):
 			p = self.find_predecessor(self.nodeID - pow(2,i-1))
 			# tell p to remove this node
 			msg = Message("remove_node", [self.nodeID,i,successor])
-			self.__send_message(msg, 'localhost', 5000+p)
+			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 
 	def print_keys(self):
 		min_key = self.keys[0]
@@ -51,23 +55,23 @@ class Node():
 		if self.finger_table[index] == nodeID:
 			finger[index] = replace_nodeID
 			msg = Message("remove_node", [nodeID,i,replace_nodeID])
-			self.__send_message(msg, 'localhost', 5000+self.predecessor)
+			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+self.predecessor)
 
 	def init_finger_table(self, otherNodeID):
 		start =  self.nodeID + 1
 		# find node's successor
 		msg = Message("find_successor", [start], self.nodeID, None)
-		self.__send_message(msg, 'localhost', 5000)
+		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+otherNodeID)
 		successor = self.__listen_for_response()
 		print "the successor of node " + str(start) + " is " + str(successor)
 		# get predecessor from successor
 		msg = Message("get_predecessor", None, self.nodeID, None)
-		self.__send_message(msg, 'localhost', 5000+successor)
+		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
 		predecessor = self.__listen_for_response()
 		self.predecessor = predecessor
 		# set self as successor's new predecessor
 		msg = Message("set_predecessor", [self.nodeID], self.nodeID, None)
-		self.__send_message(msg, 'localhost', 5000+successor)
+		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
 		self.__listen_for_response()
 		# start filling in finger table
 		self.finger_table[1] = successor
@@ -77,7 +81,7 @@ class Node():
 				self.finger_table[i+1] = self.finger_table[i]
 			else:
 				msg = Message("find_successor", [start], self.nodeID, None)
-				self.__send_message(msg, 'localhost', 5000)
+				self.__send_message(msg, DEFAULT_HOST, BASE_PORT)
 				successor = self.__listen_for_response()
 				self.finger_table[i+1] = successor
 		for i in range(1,9):
@@ -89,11 +93,11 @@ class Node():
 			n = (self.nodeID - pow(2,i-1)) % 256
 			#p = self.find_predecessor(n)
 			msg = Message("find_predecessor", [n], self.nodeID, None)
-			self.__send_message(msg, 'localhost', 5000)
+			self.__send_message(msg, DEFAULT_HOST, BASE_PORT)
 			p = self.__listen_for_response()
 			print "predecessor of " + str(n) + " is " + str(p)
 			msg = Message("update_finger_table", [self.nodeID,i], self.nodeID, None)
-			self.__send_message(msg, 'localhost', 5000+p)
+			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 			self.__listen_for_response()
 
 	def update_finger_table(self, otherNodeID, index):
@@ -104,14 +108,14 @@ class Node():
 			self.finger_table[index] = otherNodeID
 			p = self.predecessor
 			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
-			self.__send_message(msg, 'localhost', 5000+p)
+			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 			self.__listen_for_response()
 		elif (otherNodeID >= self.nodeID) and (self.finger_table[index] == 0):
 			print "updating node " + str(self.nodeID) + " at entry i=" + str(index)
 			self.finger_table[index] = otherNodeID
 			p = self.predecessor
 			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
- 			self.__send_message(msg, 'localhost', 5000+p)
+ 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 			self.__listen_for_response()
 
 	def update_finger_table_MSG(self, args):
@@ -138,7 +142,7 @@ class Node():
 		if n == self.nodeID:
 			return self.finger_table[1]
 		else:
-			self.__send_message(msg, 'localhost', 5000+n)
+			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+n)
 			successor = self.__listen_for_response()
 			print "successor is " + str(successor)
 			return successor
@@ -157,10 +161,10 @@ class Node():
 				n_successor = self.nodeID
 			else:
 				msg = Message("closest_preceding_finger", [nodeID], self.nodeID, None)
-				self.__send_message(msg,'localhost', 5000+n)
+				self.__send_message(msg,DEFAULT_HOST, BASE_PORT+n)
 				n = self.__listen_for_response()
 				msg = Message("get_successor", None, self.nodeID, None)
-				self.__send_message(msg, 'localhost', 5000+n)
+				self.__send_message(msg, DEFAULT_HOST, BASE_PORT+n)
 				n_successor = self.__listen_for_response()
 		return n
 
@@ -237,7 +241,7 @@ class Node():
 			return_val = fn()
 		message.return_val = return_val
 		#print "returning " + str(message.return_val)
-		self.__send_message(message, 'localhost', 6000+message.src_nodeID)
+		self.__send_message(message, DEFAULT_HOST, 6000+message.src_nodeID)
 
 
 class Message():
@@ -258,7 +262,7 @@ class Coordinator():
 
 	def start(self):
 		# initialize node 0
-		first_node = Node(0, 'localhost', 5000)
+		first_node = Node(0, DEFAULT_HOST, BASE_PORT)
 		for i in range(1,9):
 			first_node.finger_table[i] = 0
 		first_node.keys = (0,255)
@@ -280,7 +284,7 @@ class Coordinator():
 				if nodeID in self.nodes.keys():
 					print "Node " + nodeID + " already exists!"
 					break
-				new_node = Node(nodeID,'localhost',5000+nodeID)
+				new_node = Node(nodeID,DEFAULT_HOST,BASE_PORT+nodeID)
 				new_node.join()
 				self.nodes[nodeID] = new_node
 
