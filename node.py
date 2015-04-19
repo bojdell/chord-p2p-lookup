@@ -22,14 +22,29 @@ class Node():
 		self.port = port
 		self.finger_table = {}	# contains finger pointers for this node
 		self.predecessor = 0
-		self.keys = ()
+		self.keys = {}
 
 		self.__start()			# open listener socket
 		print "Node " + str(nodeID) + " started"
 
-	def join(self):
-		self.init_finger_table(0)	# TODO: node 0 may not always be in network
+	def join(self, otherNodeID):
+		self.init_finger_table(otherNodeID)
 		self.update_others()
+		
+		# get appropriate keys from successor
+		successor = self.finger_table[1]
+		msg = Message("remove_keys", [successor + 1, self.nodeID], self.nodeID, None)
+		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
+		self.__listen_for_response()
+		self.keys = (successor + 1, self.nodeID)
+
+	# removes keys in range [start, end], inclusive
+	def remove_keys(self, start, end):
+		self.keys = self.keys.difference(range(start, end + 1))
+
+	# adds keys in range [start, end], inclusive
+	def add_keys(self, start, end):
+		self.keys = self.keys.union(range(start, end + 1))
 
 	def find(self, key):
 		return self.find_successor(key)
@@ -47,10 +62,8 @@ class Node():
 
 	def print_keys(self):
 		if self.keys:
-			min_key = self.keys[0]
-			max_key = self.keys[1]
-			for i in range(min_key, max_key+1):
-				print i
+			for key in self.keys:
+				print key
 		else:
 			print "No keys currently stored at node " + str(self.nodeID)
 
@@ -117,15 +130,6 @@ class Node():
 			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
  			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 			self.__listen_for_response()
-
-	def update_finger_table_MSG(self, args):
-		pass
-
-	def update_predecessor_MSG(self, args):
-		pass
-
-	def transfer_keys(self, args):
-		pass
 
 	def get_successor(self):
 		return self.finger_table[1]
@@ -289,10 +293,10 @@ class Coordinator():
 				nodeID = int(command_args[1])
 				if nodeID in self.nodes.keys():
 					print "Node " + nodeID + " already exists!"
-					break
-				new_node = Node(nodeID,DEFAULT_HOST,BASE_PORT+nodeID)
-				new_node.join()
-				self.nodes[nodeID] = new_node
+				else:
+					new_node = Node(nodeID,DEFAULT_HOST,BASE_PORT+nodeID)
+					new_node.join(min(self.nodes))
+					self.nodes[nodeID] = new_node
 
 			elif command_args[0] == "find":
 				nodeID = int(command_args[1])
