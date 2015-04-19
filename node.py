@@ -46,10 +46,13 @@ class Node():
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 
 	def print_keys(self):
-		min_key = self.keys[0]
-		max_key = self.keys[1]
-		for i in range(min_key, max_key+1):
-			print i
+		if self.keys:
+			min_key = self.keys[0]
+			max_key = self.keys[1]
+			for i in range(min_key, max_key+1):
+				print i
+		else:
+			print "No keys currently stored at node " + str(self.nodeID)
 
 	def remove_node(self, nodeID, index, replace_nodeID):
 		if self.finger_table[index] == nodeID:
@@ -124,7 +127,7 @@ class Node():
 	def update_predecessor_MSG(self, args):
 		pass
 
-	def transfer_keys_MSG(self, args):
+	def transfer_keys(self, args):
 		pass
 
 	def get_successor(self):
@@ -138,10 +141,10 @@ class Node():
 
 	def find_successor(self, nodeID):
 		n = self.find_predecessor(nodeID)
-		msg = Message("get_successor", None, self.nodeID, None)
 		if n == self.nodeID:
 			return self.finger_table[1]
 		else:
+			msg = Message("get_successor", None, self.nodeID, None)
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+n)
 			successor = self.__listen_for_response()
 			print "successor is " + str(successor)
