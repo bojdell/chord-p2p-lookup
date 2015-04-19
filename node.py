@@ -27,8 +27,8 @@ class Node():
 		self.__start()			# open listener socket
 		print "Node " + str(nodeID) + " started"
 
-	def join(self):
-		self.init_finger_table(0)	# TODO: node 0 may not always be in network
+	def join(self, otherNodeID):
+		self.init_finger_table(otherNodeID)
 		self.update_others()
 		
 		# get appropriate keys from successor
@@ -38,9 +38,11 @@ class Node():
 		self.__listen_for_response()
 		self.keys = (successor + 1, self.nodeID)
 
+	# removes keys in range [start, end], inclusive
 	def remove_keys(self, start, end):
 		self.keys = self.keys.difference(range(start, end + 1))
 
+	# adds keys in range [start, end], inclusive
 	def add_keys(self, start, end):
 		self.keys = self.keys.union(range(start, end + 1))
 
@@ -292,10 +294,10 @@ class Coordinator():
 				nodeID = int(command_args[1])
 				if nodeID in self.nodes.keys():
 					print "Node " + nodeID + " already exists!"
-					break
-				new_node = Node(nodeID,DEFAULT_HOST,BASE_PORT+nodeID)
-				new_node.join()
-				self.nodes[nodeID] = new_node
+				else:
+					new_node = Node(nodeID,DEFAULT_HOST,BASE_PORT+nodeID)
+					new_node.join(min(self.nodes))
+					self.nodes[nodeID] = new_node
 
 			elif command_args[0] == "find":
 				nodeID = int(command_args[1])
