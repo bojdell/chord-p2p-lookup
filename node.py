@@ -42,7 +42,6 @@ class Node():
 			self.__send_message(msg, 'localhost', 5000+p)
 
 	def print_keys(self):
-		print "called print keys"
 		min_key = self.keys[0]
 		max_key = self.keys[1]
 		for i in range(min_key, max_key+1):
@@ -72,7 +71,7 @@ class Node():
 		# start filling in finger table
 		self.finger_table[1] = successor
 		for i in range(1,8):
-			start = pow(2,i) % 256
+			start = (self.nodeID + pow(2,i)) % 256
 			if start in range(self.nodeID, self.finger_table[i]):
 				self.finger_table[i+1] = self.finger_table[i]
 			else:
@@ -80,12 +79,18 @@ class Node():
 				self.__send_message(msg, 'localhost', 5000)
 				successor = self.__listen_for_response()
 				self.finger_table[i+1] = successor
+		for i in range(1,9):
+			start = (self.nodeID + pow(2,i-1)) % 256
+			print "start=" + str(start) + " successor=" + str(self.finger_table[i])
 
 	def update_others(self):
 		for i in range (1,9):
-			n = self.nodeID - pow(2,i-1) % 256
-			print "find_predecessor of " + str(n)
-			p = self.find_predecessor(n)
+			n = (self.nodeID + pow(2,i-1)) % 256
+			#print "find_predecessor of " + str(n)
+			#p = self.find_predecessor(n)
+			msg = Message("find_predecessor", [n], self.nodeID, None)
+			self.__send_message(msg, 'localhost', 5000)
+			p = self.__listen_for_response()
 			msg = Message("update_finger_table", [self.nodeID,i], self.nodeID, None)
 			self.__send_message(msg, 'localhost', 5000+p)
 			self.__listen_for_response()
@@ -120,7 +125,6 @@ class Node():
 
 	def find_successor(self, nodeID):
 		n = self.find_predecessor(nodeID)
-		print "predecessor is " + str(n)
 		msg = Message("get_successor", None, self.nodeID, None)
 		if n == self.nodeID:
 			return self.finger_table[1]
@@ -191,7 +195,7 @@ class Node():
 			if received:
 				time.sleep(0.1)
 				message = pickle.loads(received)
-				print "Node " + str(self.nodeID) + " received a message: " + message.function
+				#print "Node " + str(self.nodeID) + " received a message: " + message.function
 				self.__process_message(message)
 
 	# listen for incoming responses before moving on
@@ -212,11 +216,14 @@ class Node():
 	def __process_message(self, message):
 		fn = getattr(self, message.function)	# get fn pointer
 		if message.args:
-			return_val = fn(message.args)		# call fn
+			if len(message.args) == 1:
+				return_val = fn(message.args[0])
+			elif len(message.args) == 2:
+				return_val = fn(message.args[0],message.args[1])
 		else:
 			return_val = fn()
 		message.return_val = return_val
-		print "returning " + str(message.return_val)
+		#print "returning " + str(message.return_val)
 		self.__send_message(message, 'localhost', message.src_nodeID)
 
 
@@ -262,7 +269,7 @@ class Coordinator():
 					break
 				new_node = Node(nodeID,'localhost',5000+nodeID)
 				new_node.join()
-				nodes[nodeID] = new_node
+				self.nodes[nodeID] = new_node
 
 			elif command_args[0] == "find":
 				nodeID = int(command_args[1])
