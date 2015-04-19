@@ -93,7 +93,6 @@ class Node():
 	def update_others(self):
 		for i in range (1,9):
 			n = (self.nodeID - pow(2,i-1)) % 256
-			#p = self.find_predecessor(n)
 			msg = Message("find_predecessor", [n], self.nodeID, None)
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT)
 			p = self.__listen_for_response()
