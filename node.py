@@ -147,14 +147,23 @@ class Node():
 		print "find predecessor of node " + str(nodeID) + " at node " + str(self.nodeID)
 		n = self.nodeID
 		n_successor = self.finger_table[1]
+
+		if nodeID == self.nodeID:
+			return self.predecessor
+		
 		if n == n_successor:
 			return n
 		while nodeID not in range(n+1, n_successor+1): #TODO: how do we find n's successor???
 			if (nodeID > n) and (n_successor == 0):
 				return n
-			if n == self.nodeID:
-				n = self.predecessor
-				n_successor = self.nodeID
+			elif n == self.nodeID:
+				n = self.closest_preceding_finger(nodeID)
+				if n == self.nodeID:
+					n_successor = self.get_successor()
+				else:
+					msg = Message("get_successor", None, self.nodeID, None)
+					self.__send_message(msg, 'localhost', 5000+n)
+					n_successor = self.__listen_for_response()
 			else:
 				msg = Message("closest_preceding_finger", [nodeID], self.nodeID, None)
 				self.__send_message(msg,'localhost', 5000+n)
@@ -168,8 +177,8 @@ class Node():
 	def closest_preceding_finger(self, nodeID):
 		i = 8
 		while i > 0:
-			print "closest_preceding_finger: " + str(self.finger_table[i])
 			if self.finger_table[i] in range(self.nodeID+1, nodeID):
+				print "returning " + str(self.finger_table[i])
 				return self.finger_table[i]
 			i = i-1
 		return self.nodeID
