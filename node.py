@@ -162,6 +162,7 @@ class Node():
 				msg = Message("get_successor", None, self.nodeID, None)
 				self.__send_message(msg, 'localhost', 5000+n)
 				n_successor = self.__listen_for_response()
+		print "predecessor of " + str(nodeID) + " is " + str(n)
 		return n
 
 	def closest_preceding_finger(self, nodeID):
