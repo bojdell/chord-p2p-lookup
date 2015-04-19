@@ -30,6 +30,23 @@ class Node():
 	def join(self):
 		self.init_finger_table(0)	# TODO: node 0 may not always be in network
 		self.update_others()
+		
+		# get appropriate keys from successor
+		successor = self.finger_table[1]
+		msg = Message("remove_keys", [successor + 1, self.nodeID], self.nodeID, None)
+		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
+		self.__listen_for_response()
+		self.keys = (successor + 1, self.nodeID)
+
+	def remove_keys(self, start, end):
+		my_start = end
+		my_end = self.keys[1]
+		if my_start > my_end:			# adjust for wraparound
+			my_end += 256
+		self.keys = (my_start, my_end)
+
+	def add_keys(self, start, end):
+		pass
 
 	def find(self, key):
 		return self.find_successor(key)
@@ -118,15 +135,6 @@ class Node():
 			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
  			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 			self.__listen_for_response()
-
-	def update_finger_table_MSG(self, args):
-		pass
-
-	def update_predecessor_MSG(self, args):
-		pass
-
-	def transfer_keys(self, args):
-		pass
 
 	def get_successor(self):
 		return self.finger_table[1]
