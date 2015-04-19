@@ -152,12 +152,16 @@ class Node():
 		while nodeID not in range(n+1, n_successor+1): #TODO: how do we find n's successor???
 			if (nodeID > n) and (n_successor == 0):
 				return n
-			msg = Message("closest_preceding_finger", [nodeID], self.nodeID, None)
-			self.__send_message(msg,'localhost', 5000+n)
-			n = self.__listen_for_response()
-			msg = Message("get_successor", None, self.nodeID, None)
-			self.__send_message(msg, 'localhost', 5000+n)
-			n_successor = self.__listen_for_response()
+			if n == self.nodeID:
+				n = self.predecessor
+				n_successor = self.nodeID
+			else:
+				msg = Message("closest_preceding_finger", [nodeID], self.nodeID, None)
+				self.__send_message(msg,'localhost', 5000+n)
+				n = self.__listen_for_response()
+				msg = Message("get_successor", None, self.nodeID, None)
+				self.__send_message(msg, 'localhost', 5000+n)
+				n_successor = self.__listen_for_response()
 		return n
 
 	def closest_preceding_finger(self, nodeID):
@@ -205,7 +209,6 @@ class Node():
 			if received:
 				time.sleep(0.1)
 				message = pickle.loads(received)
-				#print "Node " + str(self.nodeID) + " received a message: " + message.function
 				self.__process_message(message)
 
 	# listen for incoming responses before moving on
