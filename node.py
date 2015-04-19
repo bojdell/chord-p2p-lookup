@@ -59,6 +59,7 @@ class Node():
 		msg = Message("find_successor", [start], self.nodeID, None)
 		self.__send_message(msg, 'localhost', 5000)
 		successor = self.__listen_for_response()
+		print "the successor of node " + str(start) + " is " + str(successor)
 		# get predecessor from successor
 		msg = Message("get_predecessor", None, self.nodeID, None)
 		self.__send_message(msg, 'localhost', 5000+successor)
@@ -85,12 +86,12 @@ class Node():
 
 	def update_others(self):
 		for i in range (1,9):
-			n = (self.nodeID + pow(2,i-1)) % 256
-			#print "find_predecessor of " + str(n)
+			n = (self.nodeID - pow(2,i-1)) % 256
 			#p = self.find_predecessor(n)
 			msg = Message("find_predecessor", [n], self.nodeID, None)
 			self.__send_message(msg, 'localhost', 5000)
 			p = self.__listen_for_response()
+			print "predecessor of " + str(n) + " is " + str(p)
 			msg = Message("update_finger_table", [self.nodeID,i], self.nodeID, None)
 			self.__send_message(msg, 'localhost', 5000+p)
 			self.__listen_for_response()
@@ -99,10 +100,18 @@ class Node():
 		if otherNodeID == self.nodeID:
 			return
 		if otherNodeID in range(self.nodeID, self.finger_table[index]):
+			print "updating node " + str(self.nodeID) + " at entry i=" + str(index)
 			self.finger_table[index] = otherNodeID
 			p = self.predecessor
 			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
 			self.__send_message(msg, 'localhost', 5000+p)
+			self.__listen_for_response()
+		elif (otherNodeID >= self.nodeID) and (self.finger_table[index] == 0):
+			print "updating node " + str(self.nodeID) + " at entry i=" + str(index)
+			self.finger_table[index] = otherNodeID
+			p = self.predecessor
+			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
+ 			self.__send_message(msg, 'localhost', 5000+p)
 			self.__listen_for_response()
 
 	def update_finger_table_MSG(self, args):
@@ -135,12 +144,13 @@ class Node():
 			return successor
 
 	def find_predecessor(self, nodeID):
+		print "find predecessor of node " + str(nodeID) + " at node " + str(self.nodeID)
 		n = self.nodeID
 		n_successor = self.finger_table[1]
 		if n == n_successor:
 			return n
-		while nodeID not in range(n, n_successor+1): #TODO: how do we find n's successor???
-			if nodeID >= n and n_successor == 0:
+		while nodeID not in range(n+1, n_successor+1): #TODO: how do we find n's successor???
+			if (nodeID > n) and (n_successor == 0):
 				return n
 			msg = Message("closest_preceding_finger", [nodeID], self.nodeID, None)
 			self.__send_message(msg,'localhost', 5000+n)
@@ -153,8 +163,8 @@ class Node():
 	def closest_preceding_finger(self, nodeID):
 		i = 8
 		while i > 0:
-			print "if " + str(self.finger_table[i]) + " in [" + str(self.nodeID+1) + "," + str(nodeID[0]-1) + "]"
-			if self.finger_table[i] in range(self.nodeID+1, nodeID[0]):
+			print "closest_preceding_finger: " + str(self.finger_table[i])
+			if self.finger_table[i] in range(self.nodeID+1, nodeID):
 				return self.finger_table[i]
 			i = i-1
 		return self.nodeID
@@ -204,7 +214,7 @@ class Node():
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		sock.settimeout(None)
-		sock.bind((self.host, self.nodeID))
+		sock.bind((self.host, 6000+self.nodeID))
 
 		while 1:
 			response = sock.recv(1024)
@@ -224,7 +234,7 @@ class Node():
 			return_val = fn()
 		message.return_val = return_val
 		#print "returning " + str(message.return_val)
-		self.__send_message(message, 'localhost', message.src_nodeID)
+		self.__send_message(message, 'localhost', 6000+message.src_nodeID)
 
 
 class Message():
@@ -289,6 +299,13 @@ class Coordinator():
 					print nodeID
 					self.nodes[nodeID].print_keys()
 
+			elif command_args[0] == "finger":
+				nodeID = int(command_args[1])
+				node = self.nodes[nodeID]
+				for i in range(1,9):
+					start = (node.nodeID + pow(2,i-1)) % 256
+					print "start=" + str(start) + " successor=" + str(node.finger_table[i])
+ 
 if __name__ == "__main__":
 	coord = Coordinator()
 	# add node zero before starting the thread
