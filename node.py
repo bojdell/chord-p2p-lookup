@@ -10,6 +10,7 @@ import time
 m = 8
 BASE_PORT = 5000
 DEFAULT_HOST = "localhost"
+output_file = None
 
 class Node():
 	"""
@@ -71,12 +72,11 @@ class Node():
 		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
 		self.__listen_for_response()
 
-	def print_keys(self):
-		if self.keys:
-			for key in self.keys:
-				print str(key),
-		else:
-			print "No keys currently stored at node " + str(self.nodeID)
+	def keys_to_string(self):
+		result = ""
+		for key in self.keys:
+			result += str(key) + " "
+		return result.strip()
 
 	def remove_node(self, nodeID, index, replace_nodeID):
 		if self.finger_table[index] == nodeID:
@@ -195,7 +195,7 @@ class Node():
 		return n
 
 	def closest_preceding_finger(self, nodeID):
-		#print "called closest_preceding_finger at node " + str(self.nodeID)
+		# print "called closest_preceding_finger at node " + str(self.nodeID)
 		i = 8
 		while i > 0:
 			if self.finger_table[i] in range(self.nodeID+1, nodeID):
@@ -333,14 +333,19 @@ class Coordinator():
 
 			elif command_args[0] == "show":
 				nodeID = int(command_args[1])
-				self.nodes[nodeID].print_keys()
+				result = str(nodeID) + " " + self.nodes[nodeID].keys_to_string() + "\n"
+				if output_file:
+					output_file.write(result)
+				else:
+					print result,
 
 			elif command_args[0] == "show-all":
-				# print "Node " + str(self.nodeID) + ":"
-				print str(nodeID),
-				for nodeID in self.nodes.keys():
-					self.nodes[nodeID].print_keys()
-					print
+				for nodeID in sorted(self.nodes, key=lambda key: self.nodes[key]):
+					result = str(nodeID) + " " + self.nodes[nodeID].keys_to_string() + "\n"
+					if output_file:
+						output_file.write(result)
+					else:
+						print result,
 
 			elif command_args[0] == "finger":
 				nodeID = int(command_args[1])
@@ -363,6 +368,11 @@ class Coordinator():
 			print "=== Command Executed ==="
  
 if __name__ == "__main__":
+	if len(sys.argv) > 1:
+		# check if we should output show commands to file
+		if sys.argv[1] == "-g":
+			output_file = open(sys.argv[2], 'w')
+
 	coord = Coordinator()
 	# add node zero before starting the thread
 	coord.start()
