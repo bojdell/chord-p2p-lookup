@@ -68,10 +68,9 @@ class Node():
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 
 	def print_keys(self):
-		print "Node " + str(self.nodeID) + ":"
 		if self.keys:
 			for key in self.keys:
-				print key
+				print str(key),
 		else:
 			print "No keys currently stored at node " + str(self.nodeID)
 
@@ -333,8 +332,11 @@ class Coordinator():
 				self.nodes[nodeID].print_keys()
 
 			elif command_args[0] == "show-all":
+				# print "Node " + str(self.nodeID) + ":"
+				print str(nodeID),
 				for nodeID in self.nodes.keys():
 					self.nodes[nodeID].print_keys()
+					print
 
 			elif command_args[0] == "finger":
 				nodeID = int(command_args[1])
