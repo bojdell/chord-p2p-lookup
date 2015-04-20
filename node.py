@@ -382,24 +382,16 @@ class Coordinator():
 		global current_phase
 
 		command = ""
-		print "P: " + str(P)
-		print "F: " + str(F)
-		print "N: " + str(N)
 
 		raw_input("Press enter to begin sending messages...")
 
 		while 1:
 			if test_mode:
-				print "num_joins: " + str(num_joins)
-				print "num_finds: " + str(num_finds)
-				print "num_joins == P? " + str(num_joins == P)
-				print "P: " + str(P)
-				print "F: " + str(F)
-				print "N: " + str(N)
+
 				# if phase 1, perform node joins
 				if current_phase == 1:
 					# if we've added enough nodes, proceed to phase 2
-					if num_joins == P:
+					if int(num_joins) == int(P):
 						print "Joins complete"
 						current_phase = 2
 						# else, perform a find at a random node for a random value
@@ -407,9 +399,9 @@ class Coordinator():
 					else:
 						# automate join command
 						command = self.__automateJoin()
-				elif current_phase == 2:
+				elif int(current_phase) == 2:
 					# if we've performed enough finds, proceed to next repetition
-					if num_finds == F:
+					if int(num_finds) == int(F):
 						current_repetition += 1
 						# end after N repetitions, print computed data
 						if current_repetition == N:
@@ -491,6 +483,9 @@ class Coordinator():
 			# let us know our command is finished executing
 			print "=== Command Executed ==="
 
+def incrGlobal():
+	num_joins = num_joins + 1
+
 # initialize variables used in simulation
 def initTestVars():
 	global current_phase
@@ -500,6 +495,7 @@ def initTestVars():
 	current_phase = 1
 	num_joins = 0
 	num_finds = 0
+	random.seed(time.time())
 
 if __name__ == "__main__":
 	global P
