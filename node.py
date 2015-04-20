@@ -342,7 +342,9 @@ class Coordinator():
 				self.nodes[nodeID].print_keys()
 
 			elif command_args[0] == "show-all":
-				for nodeID in self.nodes.keys():
+				all_keys = self.nodes.keys()
+				all_keys = sorted(all_keys)
+				for nodeID in all_keys:
 					self.nodes[nodeID].print_keys()
 
 			elif command_args[0] == "finger":
