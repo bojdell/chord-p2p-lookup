@@ -183,6 +183,8 @@ class Node():
 		while nodeID not in range(n+1, n_successor+1):
 			if (nodeID > n) and (n_successor == 0):
 				return n
+			elif (nodeID == 0) and (n_successor == 0):
+				return n
 			elif n == self.nodeID:
 				n = self.closest_preceding_finger(nodeID)
 				if n == self.nodeID:
