@@ -114,7 +114,7 @@ class Node():
 	def update_others(self):
 		for i in range (1,9):
 			n = (self.nodeID - pow(2,i-1)) % 256
-			#p = self.find_predecessor(n)
+			print "updating index " + str(i)
 			msg = Message("find_predecessor", [n], self.nodeID, None)
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT)
 			p = self.__listen_for_response()
@@ -160,15 +160,17 @@ class Node():
 			return successor
 
 	def find_predecessor(self, nodeID):
+		print "find predecessor of " + str(nodeID) + " at node " + str(self.nodeID)
 		n = self.nodeID
 		n_successor = self.finger_table[1]
+		print "n = " + str(n) + " , n_successor = " + str(n_successor)
 
 		if nodeID == self.nodeID:
 			return self.predecessor
 		
 		if n == n_successor:
 			return n
-		while nodeID not in range(n+1, n_successor+1): #TODO: how do we find n's successor???
+		while nodeID not in range(n+1, n_successor+1):
 			if (nodeID > n) and (n_successor == 0):
 				return n
 			elif n == self.nodeID:
@@ -183,17 +185,27 @@ class Node():
 				msg = Message("closest_preceding_finger", [nodeID], self.nodeID, None)
 				self.__send_message(msg,DEFAULT_HOST, BASE_PORT+n)
 				n = self.__listen_for_response()
-				msg = Message("get_successor", None, self.nodeID, None)
-				self.__send_message(msg, DEFAULT_HOST, BASE_PORT+n)
-				n_successor = self.__listen_for_response()
+				if n == self.nodeID:
+					n_successor = self.finger_table[1]
+				else:
+					msg = Message("get_successor", None, self.nodeID, None)
+					self.__send_message(msg, DEFAULT_HOST, BASE_PORT+n)
+					n_successor = self.__listen_for_response()
+			print "n = " + str(n) + " , n_successor = " + str(n_successor)
 		return n
 
 	def closest_preceding_finger(self, nodeID):
+		print "called closest_preceding_finger at node " + str(self.nodeID)
 		i = 8
 		while i > 0:
 			if self.finger_table[i] in range(self.nodeID+1, nodeID):
+				print "the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
+				return self.finger_table[i]
+			elif (self.finger_table[i] < self.nodeID) and (self.finger_table[i] < nodeID):
+				print "the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
 				return self.finger_table[i]
 			i = i-1
+		print "the closest_preceding_finger of " + str(nodeID) + " is " + str(self.nodeID)
 		return self.nodeID
 
 	# for testing purposes only
