@@ -343,7 +343,7 @@ class Coordinator():
 					print result,
 
 			elif command_args[0] == "show-all":
-				for nodeID in sorted(self.nodes, key=lambda key: self.nodes[key]):
+				for nodeID in sorted(self.nodes.iterkeys()):
 					result = str(nodeID) + " " + self.nodes[nodeID].keys_to_string() + "\n"
 					if output_file:
 						output_file.write(result)
