@@ -128,14 +128,14 @@ class Node():
 		if otherNodeID == self.nodeID:
 			return
 		if otherNodeID in range(self.nodeID, self.finger_table[index]):
-			print "updating node " + str(self.nodeID) + " at entry i=" + str(index) + " to " + str(otherNodeID)
+			#print "updating node " + str(self.nodeID) + " at entry i=" + str(index) + " to " + str(otherNodeID)
 			self.finger_table[index] = otherNodeID
 			p = self.predecessor
 			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 			self.__listen_for_response()
 		elif (otherNodeID >= self.nodeID) and (self.finger_table[index] == 0):
-			print "updating node " + str(self.nodeID) + " at entry i=" + str(index) + " to " + str(otherNodeID)
+			#print "updating node " + str(self.nodeID) + " at entry i=" + str(index) + " to " + str(otherNodeID)
 			self.finger_table[index] = otherNodeID
 			p = self.predecessor
 			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
@@ -199,7 +199,7 @@ class Node():
 		i = 8
 		while i > 0:
 			if self.finger_table[i] in range(self.nodeID+1, nodeID):
-				print "the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
+				#print "the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
 				return self.finger_table[i]
 			if self.nodeID > nodeID:
 				if (self.finger_table[i] < self.nodeID) and (self.finger_table[i] < nodeID):
