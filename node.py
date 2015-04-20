@@ -27,16 +27,23 @@ class Node():
 		self.__start()			# open listener socket
 		print "Node " + str(nodeID) + " started"
 
+	def __str__(self):
+		result = "Node: " + str(self.nodeID) + "\n"
+		result += "Finger Table: " + str(self.finger_table) + "\n"
+		result += "Predecessor: " + str(self.predecessor) + "\n"
+		# result += "Keys: " + str(self.keys) + "\n"
+		return result
+
 	def join(self, otherNodeID):
 		self.init_finger_table(otherNodeID)
 		self.update_others()
 		
-		# get appropriate keys from successor
+		# get keys in range [self.predecessor + 1, self.nodeID], inclusive, from successor
 		successor = self.finger_table[1]
-		msg = Message("remove_keys", [successor + 1, self.nodeID], self.nodeID, None)
+		msg = Message("remove_keys", [self.predecessor + 1, self.nodeID], self.nodeID, None)
 		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
 		self.__listen_for_response()
-		self.keys = (successor + 1, self.nodeID)
+		self.keys = set(range(self.predecessor + 1, self.nodeID + 1))
 
 	# removes keys in range [start, end], inclusive
 	def remove_keys(self, start, end):
@@ -61,6 +68,7 @@ class Node():
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 
 	def print_keys(self):
+		print "Node " + str(self.nodeID) + ":"
 		if self.keys:
 			for key in self.keys:
 				print key
@@ -314,7 +322,6 @@ class Coordinator():
 
 			elif command_args[0] == "show-all":
 				for nodeID in self.nodes.keys():
-					print nodeID
 					self.nodes[nodeID].print_keys()
 
 			elif command_args[0] == "finger":
@@ -323,6 +330,19 @@ class Coordinator():
 				for i in range(1,9):
 					start = (node.nodeID + pow(2,i-1)) % 256
 					print "start=" + str(start) + " successor=" + str(node.finger_table[i])
+
+			# for debugging
+			elif command_args[0] == "print":
+				nodeID = int(command_args[1])
+				print self.nodes[nodeID]
+
+			# for debugging
+			elif command_args[0] == "print-all":
+				for nodeID in self.nodes.keys():
+					print self.nodes[nodeID]
+
+			# let us know our command is finished executing
+			print "=== Command Executed ==="
  
 if __name__ == "__main__":
 	coord = Coordinator()
