@@ -6,12 +6,21 @@ import threading
 import pickle
 import math
 import time
+import random
 
 m = 8
 BASE_PORT = 5000
 DEFAULT_HOST = "localhost"
 DEBUG_MODE = False
 output_file = None
+
+test_mode = False
+current_repetition = 0
+current_phase = 0
+phase_1_message_total = 0
+phase_2_message_total = 0
+num_joins = 0
+num_finds = 0
 
 class Node():
 	"""
@@ -231,10 +240,6 @@ class Node():
 		return self.nodeID
 
 	# for testing purposes only
-	def send_message(self, message, dest_host, dest_port):
-		self.__send_message(message, dest_host, dest_port)
-
-	# for testing purposes only
 	def hi(self, args):
 		if DEBUG_MODE:	# TODO: PRINT
 			print str(self.nodeID) + " - hi :)"
@@ -247,6 +252,12 @@ class Node():
 
 	# send message to specified host/port
 	def __send_message(self, message, dest_host, dest_port):
+		global phase_1_message_total
+		global phase_2_message_total
+		if current_phase == 1:
+			phase_1_message_total += 1
+		elif current_phase == 2:
+			phase_2_message_total += 1
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		sock.sendto(pickle.dumps(message), (dest_host, dest_port))
 		sock.close()
@@ -328,12 +339,99 @@ class Coordinator():
 		coordThread = threading.Thread(target=self.__coordinate)
 		coordThread.setDaemon(True)
 		coordThread.start()
+
+	# get a random ID that is not currently in the network
+	def __getRandomNewID(self):
+		newNodeID = random.randrange(0, 256)
+		while newNodeID in self.nodes:
+			newNodeID = random.randrange(0, 256)
+		return newNodeID
+
+	# get a random ID that is currently in the network
+	def __getRandomExistingID(self):
+		return random.choice(self.nodes.keys())
+
+	# generate an automated join command
+	def __automateJoin(self):
+		global num_joins
+		num_joins += 1
+		# get a random ID that is not currently in network
+		newNodeID = self.__getRandomNewID()
+		# generate join command
+		return "join " + str(newNodeID)
+
+	# generate an automated find command
+	def __automateFind(self):
+		global num_finds
+		num_finds += 1
+		# get random node
+		randNode = self.__getRandomExistingID()
+		# get random key
+		randKey = random.randrange(0, 256)
+		# generate find command
+		return "find " + str(randNode) + " " + str(randKey)
 		
 	def __coordinate(self):
+		global current_phase
+		global current_repetition
+		global P
+		global F
+		global N
+		global num_joins
+		global num_finds
+		global current_phase
+
+		command = ""
+		print "P: " + str(P)
+		print "F: " + str(F)
+		print "N: " + str(N)
+
 		raw_input("Press enter to begin sending messages...")
 
 		while 1:
-			command = raw_input()
+			if test_mode:
+				print "num_joins: " + str(num_joins)
+				print "num_finds: " + str(num_finds)
+				print "num_joins == P? " + str(num_joins == P)
+				print "P: " + str(P)
+				print "F: " + str(F)
+				print "N: " + str(N)
+				# if phase 1, perform node joins
+				if current_phase == 1:
+					# if we've added enough nodes, proceed to phase 2
+					if num_joins == P:
+						print "Joins complete"
+						current_phase = 2
+						# else, perform a find at a random node for a random value
+						command = self.__automateFind()
+					else:
+						# automate join command
+						command = self.__automateJoin()
+				elif current_phase == 2:
+					# if we've performed enough finds, proceed to next repetition
+					if num_finds == F:
+						current_repetition += 1
+						# end after N repetitions, print computed data
+						if current_repetition == N:
+							print "=== Simulation Completed ==="
+							print "phase_1_message_total avg: " + str(phase_1_message_total / N)
+							print "phase_2_message_total avg: " + str(phase_2_message_total / N)
+							break
+						else:
+							print "Finds complete, resetting"
+							# reset test vars
+							initTestVars()
+							# automate join command
+							command = self.__automateJoin()
+					# else, perform a find at a random node for a random value
+					else:
+						# automate find command
+						command = self.__automateFind()
+				# print out generated command before executing it below
+				print command
+			# if we're not simulating, read in a command from terminal
+			else:
+				command = raw_input()
 			command_args = command.split()
 
 			if command_args[0] == "join":
@@ -392,12 +490,32 @@ class Coordinator():
 
 			# let us know our command is finished executing
 			print "=== Command Executed ==="
- 
+
+# initialize variables used in simulation
+def initTestVars():
+	global current_phase
+	global num_joins
+	global num_finds
+
+	current_phase = 1
+	num_joins = 0
+	num_finds = 0
+
 if __name__ == "__main__":
+	global P
+	global F
+	global N
 	if len(sys.argv) > 1:
 		# check if we should output show commands to file
 		if sys.argv[1] == "-g":
 			output_file = open(sys.argv[2], 'w')
+		# check if we should be simulating
+		elif sys.argv[1] == "-t":
+			test_mode = True
+			P = sys.argv[2]
+			F = sys.argv[3]
+			N = 5
+			initTestVars()
 
 	coord = Coordinator()
 	# add node zero before starting the thread
