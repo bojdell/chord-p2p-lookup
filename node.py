@@ -60,9 +60,7 @@ class Node():
 		successor = self.finger_table[1]
 		for i in range(1,9):
 			n = (self.nodeID - pow(2,i-1)) % 256
-			print "find predecessor of " + str(n)
 			p = self.find_predecessor(n)
-			print "predecessor is " + str(p)
 			# tell p to remove this node
 			msg = Message("remove_node", [self.nodeID,i,successor], self.nodeID, None)
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
@@ -84,6 +82,7 @@ class Node():
 			self.finger_table[index] = replace_nodeID
 			msg = Message("remove_node", [nodeID,index,replace_nodeID], self.nodeID, None)
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+self.predecessor)
+			self.__listen_for_response()
 
 	def init_finger_table(self, otherNodeID):
 		start =  self.nodeID + 1
@@ -202,11 +201,15 @@ class Node():
 			if self.finger_table[i] in range(self.nodeID+1, nodeID):
 				print "the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
 				return self.finger_table[i]
-			elif (self.finger_table[i] < self.nodeID) and (self.finger_table[i] < nodeID):
-				print "*the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
-				return self.finger_table[i]
+			if self.nodeID > nodeID:
+				if (self.finger_table[i] < self.nodeID) and (self.finger_table[i] < nodeID):
+					#print "*the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
+					return self.finger_table[i]
+				elif (self.finger_table[i] > self.nodeID) and (self.finger_table[i] > nodeID):
+					#print "**the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
+					return self.finger_table[i]
 			i = i-1
-		print "***the closest_preceding_finger of " + str(nodeID) + " is " + str(self.nodeID)
+		#print "***the closest_preceding_finger of " + str(nodeID) + " is " + str(self.nodeID)
 		return self.nodeID
 
 	# for testing purposes only
