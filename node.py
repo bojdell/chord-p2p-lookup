@@ -58,14 +58,18 @@ class Node():
 
 	def leave(self):
 		successor = self.finger_table[1]
-		msg = Message("set_predecessor", [self.predecessor], self.nodeID, None)
-		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
-		self.__listen_for_response()
 		for i in range(1,9):
-			p = self.find_predecessor(self.nodeID - pow(2,i-1))
+			n = (self.nodeID - pow(2,i-1)) % 256
+			print "find predecessor of " + str(n)
+			p = self.find_predecessor(n)
+			print "predecessor is " + str(p)
 			# tell p to remove this node
 			msg = Message("remove_node", [self.nodeID,i,successor], self.nodeID, None)
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
+			self.__listen_for_response()
+		msg = Message("set_predecessor", [self.predecessor], self.nodeID, None)
+		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
+		self.__listen_for_response()
 
 	def print_keys(self):
 		print "Node " + str(self.nodeID) + ":"
@@ -77,8 +81,8 @@ class Node():
 
 	def remove_node(self, nodeID, index, replace_nodeID):
 		if self.finger_table[index] == nodeID:
-			finger[index] = replace_nodeID
-			msg = Message("remove_node", [nodeID,i,replace_nodeID])
+			self.finger_table[index] = replace_nodeID
+			msg = Message("remove_node", [nodeID,index,replace_nodeID], self.nodeID, None)
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+self.predecessor)
 
 	def init_finger_table(self, otherNodeID):
@@ -201,9 +205,6 @@ class Node():
 			elif (self.finger_table[i] < self.nodeID) and (self.finger_table[i] < nodeID):
 				print "*the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
 				return self.finger_table[i]
-			elif (self.finger_table[i] > self.nodeID) and (self.finger_table[i] > nodeID):
-				print "**the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
-				return self.finger_table[i]
 			i = i-1
 		print "***the closest_preceding_finger of " + str(nodeID) + " is " + str(self.nodeID)
 		return self.nodeID
@@ -268,6 +269,8 @@ class Node():
 				return_val = fn(message.args[0])
 			elif len(message.args) == 2:
 				return_val = fn(message.args[0],message.args[1])
+			elif len(message.args) == 3:
+				return_val = fn(message.args[0],message.args[1],message.args[2])
 		else:
 			return_val = fn()
 		message.return_val = return_val
@@ -313,7 +316,7 @@ class Coordinator():
 			if command_args[0] == "join":
 				nodeID = int(command_args[1])
 				if nodeID in self.nodes.keys():
-					print "Node " + nodeID + " already exists!"
+					print "Node " + str(nodeID) + " already exists!"
 				else:
 					new_node = Node(nodeID,DEFAULT_HOST,BASE_PORT+nodeID)
 					new_node.join(min(self.nodes))
@@ -327,6 +330,7 @@ class Coordinator():
 			elif command_args[0] == "leave":
 				nodeID = int(command_args[1])
 				self.nodes[nodeID].leave()
+				del self.nodes[nodeID]
 
 			elif command_args[0] == "show":
 				nodeID = int(command_args[1])
