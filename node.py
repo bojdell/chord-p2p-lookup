@@ -10,6 +10,8 @@ import time
 m = 8
 BASE_PORT = 5000
 DEFAULT_HOST = "localhost"
+DEBUG_MODE = False
+output_file = None
 
 class Node():
 	"""
@@ -25,7 +27,8 @@ class Node():
 		self.keys = {}
 
 		self.__start()			# open listener socket
-		print "Node " + str(nodeID) + " started"
+		if DEBUG_MODE:	# TODO: PRINT
+			print "Node " + str(nodeID) + " started"
 
 	def __str__(self):
 		result = "Node: " + str(self.nodeID) + "\n"
@@ -69,13 +72,17 @@ class Node():
 		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
 		self.__listen_for_response()
 
-	def print_keys(self):
-		print "Node " + str(self.nodeID) + ":"
-		if self.keys:
-			for key in self.keys:
-				print key
-		else:
-			print "No keys currently stored at node " + str(self.nodeID)
+		# give keys in range [self.predecessor + 1, self.nodeID], inclusive, to successor
+		successor = self.finger_table[1]
+		msg = Message("add_keys", [self.predecessor + 1, self.nodeID], self.nodeID, None)
+		self.__send_message(msg, DEFAULT_HOST, BASE_PORT+successor)
+		self.__listen_for_response()
+
+	def keys_to_string(self):
+		result = ""
+		for key in self.keys:
+			result += str(key) + " "
+		return result.strip()
 
 	def remove_node(self, nodeID, index, replace_nodeID):
 		if self.finger_table[index] == nodeID:
@@ -112,7 +119,8 @@ class Node():
 				self.finger_table[i+1] = successor
 		for i in range(1,9):
 			start = (self.nodeID + pow(2,i-1)) % 256
-			print "start= " + str(start) + " successor=" + str(self.finger_table[i])
+			if DEBUG_MODE:	# TODO: PRINT
+				print "start= " + str(start) + " successor=" + str(self.finger_table[i])
 
 	def update_others(self):
 		for i in range (1,9):
@@ -128,14 +136,16 @@ class Node():
 		if otherNodeID == self.nodeID:
 			return
 		if otherNodeID in range(self.nodeID, self.finger_table[index]):
-			#print "updating node " + str(self.nodeID) + " at entry i=" + str(index) + " to " + str(otherNodeID)
+			if DEBUG_MODE:	# TODO: PRINT
+				print "updating node " + str(self.nodeID) + " at entry i=" + str(index) + " to " + str(otherNodeID)
 			self.finger_table[index] = otherNodeID
 			p = self.predecessor
 			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
 			self.__send_message(msg, DEFAULT_HOST, BASE_PORT+p)
 			self.__listen_for_response()
 		elif (otherNodeID >= self.nodeID) and (self.finger_table[index] == 0):
-			#print "updating node " + str(self.nodeID) + " at entry i=" + str(index) + " to " + str(otherNodeID)
+			if DEBUG_MODE:	# TODO: PRINT
+				print "updating node " + str(self.nodeID) + " at entry i=" + str(index) + " to " + str(otherNodeID)
 			self.finger_table[index] = otherNodeID
 			p = self.predecessor
 			msg = Message("update_finger_table", [otherNodeID, index], self.nodeID, None)
@@ -193,25 +203,31 @@ class Node():
 					msg = Message("get_successor", None, self.nodeID, None)
 					self.__send_message(msg, DEFAULT_HOST, BASE_PORT+n)
 					n_successor = self.__listen_for_response()
-			print "n=" + str(n) + " and ns=" + str(n_successor)
+			if DEBUG_MODE:	# TODO: PRINT
+				print "n=" + str(n) + " and ns=" + str(n_successor)
 		return n
 
 	def closest_preceding_finger(self, nodeID):
-		#print "called closest_preceding_finger at node " + str(self.nodeID)
+		if DEBUG_MODE:	# TODO: PRINT
+			print "called closest_preceding_finger at node " + str(self.nodeID)
 		i = 8
 		while i > 0:
 			if self.finger_table[i] in range(self.nodeID+1, nodeID):
-				#print "the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
+				if DEBUG_MODE:	# TODO: PRINT
+					print "the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
 				return self.finger_table[i]
 			if self.nodeID > nodeID:
 				if (self.finger_table[i] < self.nodeID) and (self.finger_table[i] < nodeID):
-					#print "*the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
+					if DEBUG_MODE:	# TODO: PRINT
+						print "*the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
 					return self.finger_table[i]
 				elif (self.finger_table[i] > self.nodeID) and (self.finger_table[i] > nodeID):
-					#print "**the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
+					if DEBUG_MODE:	# TODO: PRINT
+						print "**the closest_preceding_finger of " + str(nodeID) + " is " + str(self.finger_table[i])
 					return self.finger_table[i]
 			i = i-1
-		#print "***the closest_preceding_finger of " + str(nodeID) + " is " + str(self.nodeID)
+		if DEBUG_MODE:	# TODO: PRINT
+			print "***the closest_preceding_finger of " + str(nodeID) + " is " + str(self.nodeID)
 		return self.nodeID
 
 	# for testing purposes only
@@ -220,7 +236,8 @@ class Node():
 
 	# for testing purposes only
 	def hi(self, args):
-		print str(self.nodeID) + " - hi :)"
+		if DEBUG_MODE:	# TODO: PRINT
+			print str(self.nodeID) + " - hi :)"
 
 	# start the listen thread
 	def __start(self):
@@ -279,7 +296,8 @@ class Node():
 		else:
 			return_val = fn()
 		message.return_val = return_val
-		#print "returning " + str(message.return_val)
+		if DEBUG_MODE:	# TODO: PRINT
+			print "returning " + str(message.return_val)
 		self.__send_message(message, DEFAULT_HOST, 6000+message.src_nodeID)
 
 
@@ -321,7 +339,8 @@ class Coordinator():
 			if command_args[0] == "join":
 				nodeID = int(command_args[1])
 				if nodeID in self.nodes.keys():
-					print "Node " + str(nodeID) + " already exists!"
+					if DEBUG_MODE:	# TODO: PRINT
+						print "Node " + str(nodeID) + " already exists!"
 				else:
 					new_node = Node(nodeID,DEFAULT_HOST,BASE_PORT+nodeID)
 					new_node.join(min(self.nodes))
@@ -339,20 +358,27 @@ class Coordinator():
 
 			elif command_args[0] == "show":
 				nodeID = int(command_args[1])
-				self.nodes[nodeID].print_keys()
+				result = str(nodeID) + " " + self.nodes[nodeID].keys_to_string() + "\n"
+				if output_file:
+					output_file.write(result)
+				else:
+					print result,
 
 			elif command_args[0] == "show-all":
-				all_keys = self.nodes.keys()
-				all_keys = sorted(all_keys)
-				for nodeID in all_keys:
-					self.nodes[nodeID].print_keys()
+				for nodeID in sorted(self.nodes.iterkeys()):
+					result = str(nodeID) + " " + self.nodes[nodeID].keys_to_string() + "\n"
+					if output_file:
+						output_file.write(result)
+					else:
+						print result,
 
 			elif command_args[0] == "finger":
 				nodeID = int(command_args[1])
 				node = self.nodes[nodeID]
 				for i in range(1,9):
 					start = (node.nodeID + pow(2,i-1)) % 256
-					print "start=" + str(start) + " successor=" + str(node.finger_table[i])
+					if DEBUG_MODE:	# TODO: PRINT
+						print "start=" + str(start) + " successor=" + str(node.finger_table[i])
 
 			# for debugging
 			elif command_args[0] == "print":
@@ -368,6 +394,11 @@ class Coordinator():
 			print "=== Command Executed ==="
  
 if __name__ == "__main__":
+	if len(sys.argv) > 1:
+		# check if we should output show commands to file
+		if sys.argv[1] == "-g":
+			output_file = open(sys.argv[2], 'w')
+
 	coord = Coordinator()
 	# add node zero before starting the thread
 	coord.start()
